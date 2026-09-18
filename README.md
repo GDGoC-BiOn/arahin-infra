@@ -56,6 +56,12 @@ Each app is tagged with its own repo's git SHA and only rebuilt if that exact
 tag isn't already in Artifact Registry (or the working tree is dirty) — so
 changing just `arahin-backend` doesn't rebuild `arahin-parser`/`arahin-ai`.
 
+## CI/CD
+
+Every push to `main` — in this repo or any of the three app repos — deploys
+automatically via GitHub Actions, authenticated with Workload Identity
+Federation (`ci.tf`; no JSON key). See `docs/ci-deploy.md`.
+
 ## Existing arahin-ai service
 
 There is a pre-Terraform `arahin-ai` Cloud Run service in `us-central1`

@@ -1,0 +1,101 @@
+name: Deploy app image + infra
+
+# Called by arahin-backend/parser/ai's own deploy.yml on push to their main.
+# Builds and pushes that app's image (skipped if the commit's tag already
+# exists), then applies this repo's Terraform with all three services'
+# image tags — the other two resolved from what's currently deployed, not
+# from Terraform's `latest` defaults. See docs/ci-deploy.md.
+on:
+  workflow_call:
+    inputs:
+      app:
+        description: 'arahin-parser | arahin-ai | arahin-backend'
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: terraform-apply
+  cancel-in-progress: false
+
+env:
+  PROJECT_ID: arahin-509007
+  REGION: asia-southeast1
+  WIF_PROVIDER: projects/244244141714/locations/global/workloadIdentityPools/github-actions/providers/github
+  CI_SA: gh-actions-deployer@arahin-509007.iam.gserviceaccount.com
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ${{ inputs.app }}
+        uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.CI_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Resolve image tags
+        id: tags
+        run: |
+          current_tag() {
+            local img
+            img=$(gcloud run services describe "$1" --region "$REGION" \
+              --format='value(spec.template.spec.containers[0].image)' 2>/dev/null) || true
+            if [ -z "$img" ]; then echo latest; else echo "${img##*:}"; fi
+          }
+
+          own="${GITHUB_SHA:0:7}"
+          case "${{ inputs.app }}" in
+            arahin-parser)
+              echo "parser=$own" >> "$GITHUB_OUTPUT"
+              echo "ai=$(current_tag arahin-ai)" >> "$GITHUB_OUTPUT"
+              echo "backend=$(current_tag arahin-backend)" >> "$GITHUB_OUTPUT"
+              ;;
+            arahin-ai)
+              echo "ai=$own" >> "$GITHUB_OUTPUT"
+              echo "parser=$(current_tag arahin-parser)" >> "$GITHUB_OUTPUT"
+              echo "backend=$(current_tag arahin-backend)" >> "$GITHUB_OUTPUT"
+              ;;
+            arahin-backend)
+              echo "backend=$own" >> "$GITHUB_OUTPUT"
+              echo "parser=$(current_tag arahin-parser)" >> "$GITHUB_OUTPUT"
+              echo "ai=$(current_tag arahin-ai)" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: Build and push image
+        run: |
+          AR="${REGION}-docker.pkg.dev/${PROJECT_ID}/arahin"
+          TAG="${GITHUB_SHA:0:7}"
+          IMAGE="${AR}/${{ inputs.app }}:${TAG}"
+          if gcloud artifacts docker images describe "$IMAGE" --project "$PROJECT_ID" >/dev/null 2>&1; then
+            echo "$IMAGE already pushed, skipping build"
+          else
+            gcloud builds submit . --tag "$IMAGE" --project "$PROJECT_ID"
+          fi
+
+      - name: Checkout arahin-infra
+        uses: actions/checkout@v4
+        with:
+          repository: GDGoC-BiOn/arahin-infra
+          path: infra
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: terraform apply
+        working-directory: infra
+        run: |
+          terraform init
+          terraform apply -auto-approve \
+            -var "parser_image_tag=${{ steps.tags.outputs.parser }}" \
+            -var "ai_image_tag=${{ steps.tags.outputs.ai }}" \
+            -var "backend_image_tag=${{ steps.tags.outputs.backend }}"

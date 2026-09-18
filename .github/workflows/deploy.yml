@@ -1,0 +1,59 @@
+name: Deploy
+
+# Applies Terraform on every push to main — for infra-only changes (env vars,
+# scaling, IAM, new resources). Keeps every currently-running image tag as
+# it is: no new image gets built here. See docs/ci-deploy.md.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: terraform-apply
+  cancel-in-progress: false
+
+env:
+  PROJECT_ID: arahin-509007
+  REGION: asia-southeast1
+  WIF_PROVIDER: projects/244244141714/locations/global/workloadIdentityPools/github-actions/providers/github
+  CI_SA: gh-actions-deployer@arahin-509007.iam.gserviceaccount.com
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.CI_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Resolve current image tags
+        id: tags
+        run: |
+          current_tag() {
+            local img
+            img=$(gcloud run services describe "$1" --region "$REGION" \
+              --format='value(spec.template.spec.containers[0].image)' 2>/dev/null) || true
+            if [ -z "$img" ]; then echo latest; else echo "${img##*:}"; fi
+          }
+          echo "parser=$(current_tag arahin-parser)" >> "$GITHUB_OUTPUT"
+          echo "ai=$(current_tag arahin-ai)" >> "$GITHUB_OUTPUT"
+          echo "backend=$(current_tag arahin-backend)" >> "$GITHUB_OUTPUT"
+
+      - name: terraform apply
+        run: |
+          terraform init
+          terraform apply -auto-approve \
+            -var "parser_image_tag=${{ steps.tags.outputs.parser }}" \
+            -var "ai_image_tag=${{ steps.tags.outputs.ai }}" \
+            -var "backend_image_tag=${{ steps.tags.outputs.backend }}"
