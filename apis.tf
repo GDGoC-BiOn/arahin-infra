@@ -12,6 +12,10 @@ resource "google_project_service" "apis" {
     "iamcredentials.googleapis.com",
     "compute.googleapis.com",
     "servicenetworking.googleapis.com",
+    # Required for every google_project_iam_member/google_project_service
+    # call — the human ADC path tolerated it being off, the CI service
+    # account's calls got a hard 403 until this was enabled.
+    "cloudresourcemanager.googleapis.com",
   ])
 
   project            = var.project_id
