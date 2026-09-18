@@ -16,6 +16,7 @@ resource "google_project_service" "apis" {
     # call — the human ADC path tolerated it being off, the CI service
     # account's calls got a hard 403 until this was enabled.
     "cloudresourcemanager.googleapis.com",
+    "cloudtrace.googleapis.com",
   ])
 
   project            = var.project_id

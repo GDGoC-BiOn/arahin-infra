@@ -18,10 +18,11 @@ locals {
 module "sa_parser" {
   source = "./modules/service-account"
 
-  project_id   = var.project_id
-  account_id   = "arahin-parser-run"
-  display_name = "arahin-parser Cloud Run runtime"
-  depends_on   = [google_project_service.apis]
+  project_id    = var.project_id
+  account_id    = "arahin-parser-run"
+  display_name  = "arahin-parser Cloud Run runtime"
+  project_roles = ["roles/cloudtrace.agent"]
+  depends_on    = [google_project_service.apis]
 }
 
 module "sa_ai" {
@@ -30,7 +31,7 @@ module "sa_ai" {
   project_id    = var.project_id
   account_id    = "arahin-ai-run"
   display_name  = "arahin-ai Cloud Run runtime"
-  project_roles = ["roles/aiplatform.user"]
+  project_roles = ["roles/aiplatform.user", "roles/cloudtrace.agent"]
   depends_on    = [google_project_service.apis]
 }
 
@@ -40,7 +41,7 @@ module "sa_backend" {
   project_id    = var.project_id
   account_id    = "arahin-backend-run"
   display_name  = "arahin-backend Cloud Run runtime"
-  project_roles = ["roles/cloudsql.client"]
+  project_roles = ["roles/cloudsql.client", "roles/cloudtrace.agent"]
   depends_on    = [google_project_service.apis]
 }
 
