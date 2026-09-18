@@ -139,4 +139,14 @@ module "backend_service" {
     JWT_SECRET   = { secret_id = google_secret_manager_secret.jwt_secret.secret_id }
     DATABASE_URL = { secret_id = google_secret_manager_secret.database_url.secret_id }
   }
+
+  # secret_env above only names the secret container, not its version — so
+  # without this, Terraform has no reason to wait for the version (or the
+  # accessor grant) to exist before creating the service that reads it.
+  depends_on = [
+    google_secret_manager_secret_version.jwt_secret,
+    google_secret_manager_secret_version.database_url,
+    google_secret_manager_secret_iam_member.backend_jwt,
+    google_secret_manager_secret_iam_member.backend_database_url,
+  ]
 }
