@@ -9,9 +9,9 @@ module "artifact_registry" {
 
 locals {
   images = {
-    parser  = "${module.artifact_registry.url}/arahin-parser:${var.image_tag}"
-    ai      = "${module.artifact_registry.url}/arahin-ai:${var.image_tag}"
-    backend = "${module.artifact_registry.url}/arahin-backend:${var.image_tag}"
+    parser  = "${module.artifact_registry.url}/arahin-parser:${var.parser_image_tag}"
+    ai      = "${module.artifact_registry.url}/arahin-ai:${var.ai_image_tag}"
+    backend = "${module.artifact_registry.url}/arahin-backend:${var.backend_image_tag}"
   }
 }
 

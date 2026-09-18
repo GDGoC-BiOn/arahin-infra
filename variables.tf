@@ -8,9 +8,20 @@ variable "region" {
   default = "asia-southeast1"
 }
 
-# Overridden per deploy: `terraform apply -var image_tag=<git-sha>`. Every
-# service shares one tag so a deploy is reproducible from a single commit.
-variable "image_tag" {
+# Each service is tagged with its own repo's git SHA (see deploy.sh), so
+# redeploying after a change to only one service doesn't touch the others'
+# running revision.
+variable "parser_image_tag" {
+  type    = string
+  default = "latest"
+}
+
+variable "ai_image_tag" {
+  type    = string
+  default = "latest"
+}
+
+variable "backend_image_tag" {
   type    = string
   default = "latest"
 }

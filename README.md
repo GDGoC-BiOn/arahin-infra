@@ -49,9 +49,12 @@ terraform apply -var "app_url=$(terraform output -raw backend_url)"
 ## Subsequent deploys
 
 ```sh
-./deploy.sh                # tags images with a timestamp
-./deploy.sh $(git -C ../arahin-backend rev-parse --short HEAD)   # or a real sha
+./deploy.sh
 ```
+
+Each app is tagged with its own repo's git SHA and only rebuilt if that exact
+tag isn't already in Artifact Registry (or the working tree is dirty) — so
+changing just `arahin-backend` doesn't rebuild `arahin-parser`/`arahin-ai`.
 
 ## Existing arahin-ai service
 
