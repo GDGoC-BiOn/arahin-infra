@@ -77,9 +77,11 @@ resource "google_project_iam_member" "ci_deployer_roles" {
   member  = "serviceAccount:${google_service_account.ci_deployer.email}"
 }
 
-# terraform's GCS backend needs to read/write the state object itself.
+# terraform's GCS backend needs to read/write the state object itself, and
+# to manage this exact binding on later runs it needs storage.admin, not just
+# storage.objectAdmin — object-level roles can't getIamPolicy on the bucket.
 resource "google_storage_bucket_iam_member" "ci_deployer_state" {
   bucket = "arahin-509007-tfstate"
-  role   = "roles/storage.objectAdmin"
+  role   = "roles/storage.admin"
   member = "serviceAccount:${google_service_account.ci_deployer.email}"
 }
