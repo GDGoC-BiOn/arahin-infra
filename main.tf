@@ -114,7 +114,14 @@ module "backend_service" {
   name                  = "arahin-backend"
   image                 = local.images.backend
   service_account_email = module.sa_backend.email
-  timeout_seconds       = 300
+  # Must cover the app's own worst-case retry budget, not just one attempt:
+  # AI_MAX_ATTEMPTS(3) x 2 AI calls per attempt (extract, curriculum) x
+  # AI_TIMEOUT_SECONDS(300) + 60s buffer = 1860s (see arahin-backend's
+  # cmd/api/main.go aiBudget calc, which this must stay >= to). The 300s
+  # this used to be is Cloud Run's own default — capping requests at 1/6
+  # of what the app was designed to allow, independent of and shorter than
+  # the app's own route timeout.
+  timeout_seconds       = 1860
   allow_unauthenticated = true
   cloudsql_instances    = [module.db.connection_name]
   vpc_network           = module.network.network_id
