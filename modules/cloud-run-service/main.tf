@@ -67,6 +67,20 @@ resource "google_cloud_run_v2_service" "this" {
         }
       }
     }
+
+    # Direct VPC egress — needed to reach a private-IP-only Cloud SQL instance
+    # (this project's org policy forbids a public IP). No VPC Access
+    # Connector resource required.
+    dynamic "vpc_access" {
+      for_each = var.vpc_subnetwork == null ? [] : [1]
+      content {
+        network_interfaces {
+          network    = var.vpc_network
+          subnetwork = var.vpc_subnetwork
+        }
+        egress = "PRIVATE_RANGES_ONLY"
+      }
+    }
   }
 }
 

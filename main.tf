@@ -44,13 +44,23 @@ module "sa_backend" {
   depends_on    = [google_project_service.apis]
 }
 
+module "network" {
+  source = "./modules/private-network"
+
+  project_id = var.project_id
+  region     = var.region
+  name       = "arahin"
+  depends_on = [google_project_service.apis]
+}
+
 module "db" {
   source = "./modules/cloud-sql"
 
-  project_id    = var.project_id
-  region        = var.region
-  instance_name = "arahin-pg"
-  depends_on    = [google_project_service.apis]
+  project_id         = var.project_id
+  region             = var.region
+  instance_name      = "arahin-pg"
+  private_network_id = module.network.network_id
+  depends_on         = [google_project_service.apis, module.network]
 }
 
 module "parser_service" {
@@ -106,6 +116,8 @@ module "backend_service" {
   timeout_seconds       = 300
   allow_unauthenticated = true
   cloudsql_instances    = [module.db.connection_name]
+  vpc_network           = module.network.network_id
+  vpc_subnetwork        = module.network.run_subnet_id
 
   env = merge(
     {

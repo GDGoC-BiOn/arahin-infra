@@ -84,3 +84,15 @@ variable "invoker_members" {
   type    = list(string)
   default = []
 }
+
+# Both null (the default) means no VPC access — the service only reaches the
+# public internet.
+variable "vpc_network" {
+  type    = string
+  default = null
+}
+
+variable "vpc_subnetwork" {
+  type    = string
+  default = null
+}
