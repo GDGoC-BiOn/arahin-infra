@@ -20,7 +20,12 @@ AR="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}"
 # before anything can be pushed to it. Re-running this is a no-op once it does.
 terraform apply -target=google_project_service.apis -target=module.artifact_registry
 
-declare -A TAGS
+# macOS ships bash 3.2 (no associative arrays) as /bin/bash regardless of
+# the shebang above, so tags are plain per-app variables, not a map.
+PARSER_TAG=""
+AI_TAG=""
+BACKEND_TAG=""
+
 for app in arahin-parser arahin-ai arahin-backend; do
   dir="../$app"
   sha="$(git -C "$dir" rev-parse --short HEAD)"
@@ -29,7 +34,12 @@ for app in arahin-parser arahin-ai arahin-backend; do
   else
     tag="$sha"
   fi
-  TAGS[$app]="$tag"
+
+  case "$app" in
+    arahin-parser)  PARSER_TAG="$tag" ;;
+    arahin-ai)      AI_TAG="$tag" ;;
+    arahin-backend) BACKEND_TAG="$tag" ;;
+  esac
 
   if gcloud artifacts docker images describe "${AR}/${app}:${tag}" --project "$PROJECT_ID" >/dev/null 2>&1; then
     echo "==> $app:$tag already pushed, skipping build"
@@ -41,6 +51,6 @@ done
 
 echo "==> terraform apply"
 terraform apply \
-  -var "parser_image_tag=${TAGS[arahin-parser]}" \
-  -var "ai_image_tag=${TAGS[arahin-ai]}" \
-  -var "backend_image_tag=${TAGS[arahin-backend]}"
+  -var "parser_image_tag=$PARSER_TAG" \
+  -var "ai_image_tag=$AI_TAG" \
+  -var "backend_image_tag=$BACKEND_TAG"
