@@ -90,3 +90,13 @@ resource "google_storage_bucket_iam_member" "ci_deployer_state" {
   role   = "roles/storage.admin"
   member = "serviceAccount:${google_service_account.ci_deployer.email}"
 }
+
+# gcloud builds submit uploads source here. cloudbuild.builds.editor covers
+# creating the build itself but not writing to this bucket — a build-owning
+# human account gets that implicitly (legacy project-editor ACLs on the
+# auto-created bucket), a plain service account does not.
+resource "google_storage_bucket_iam_member" "ci_deployer_cloudbuild_source" {
+  bucket = "arahin-509007_cloudbuild"
+  role   = "roles/storage.admin"
+  member = "serviceAccount:${google_service_account.ci_deployer.email}"
+}
