@@ -75,28 +75,25 @@ resource "google_project_iam_member" "ci_deployer_roles" {
     "roles/servicenetworking.networksAdmin",
     "roles/serviceusage.serviceUsageAdmin",
     "roles/resourcemanager.projectIamAdmin",
+    # Project-scoped, not bucket-scoped, on purpose: `gcloud builds submit`'s
+    # preflight check calls storage.buckets.list — a *project*-level
+    # operation — to find the default Cloud Build source bucket, before it
+    # ever touches a specific bucket by name. A bucket-scoped grant on that
+    # bucket alone (what this used to be) 403s at that list call, never gets
+    # far enough to matter. This same role also covers the tfstate bucket
+    # (terraform's GCS backend needs storage.admin, not just
+    # storage.objectAdmin, to manage its own IAM binding on later runs —
+    # object-level roles can't getIamPolicy on a bucket).
+    "roles/storage.admin",
+    # gcloud builds submit also streams build logs from a legacy,
+    # ACL-gated bucket ("gs://PROJECT_NUMBER.cloudbuild-logs...") that only
+    # project Viewer/Owner can read — confirmed by reproducing the exact
+    # failure with --log-http and --impersonate-service-account before
+    # adding this; storage.admin and logging.viewer alone were not enough.
+    "roles/viewer",
   ])
 
   project = var.project_id
   role    = each.value
   member  = "serviceAccount:${google_service_account.ci_deployer.email}"
-}
-
-# terraform's GCS backend needs to read/write the state object itself, and
-# to manage this exact binding on later runs it needs storage.admin, not just
-# storage.objectAdmin — object-level roles can't getIamPolicy on the bucket.
-resource "google_storage_bucket_iam_member" "ci_deployer_state" {
-  bucket = "arahin-509007-tfstate"
-  role   = "roles/storage.admin"
-  member = "serviceAccount:${google_service_account.ci_deployer.email}"
-}
-
-# gcloud builds submit uploads source here. cloudbuild.builds.editor covers
-# creating the build itself but not writing to this bucket — a build-owning
-# human account gets that implicitly (legacy project-editor ACLs on the
-# auto-created bucket), a plain service account does not.
-resource "google_storage_bucket_iam_member" "ci_deployer_cloudbuild_source" {
-  bucket = "arahin-509007_cloudbuild"
-  role   = "roles/storage.admin"
-  member = "serviceAccount:${google_service_account.ci_deployer.email}"
 }
