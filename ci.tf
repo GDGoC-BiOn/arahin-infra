@@ -60,10 +60,15 @@ resource "google_service_account_iam_member" "ci_deployer_wif" {
 resource "google_project_iam_member" "ci_deployer_roles" {
   for_each = toset([
     "roles/run.admin",
-    "roles/artifactregistry.writer",
+    # repoAdmin, not writer: writer can read/push artifacts but can't
+    # create/update/delete the repository resource itself.
+    "roles/artifactregistry.repoAdmin",
     "roles/cloudbuild.builds.editor",
     "roles/iam.serviceAccountUser",
     "roles/iam.serviceAccountAdmin",
+    # Manages ci.tf's own WIF pool/provider — without this, the CI SA can't
+    # even read the auth mechanism it's authenticating through.
+    "roles/iam.workloadIdentityPoolAdmin",
     "roles/cloudsql.admin",
     "roles/secretmanager.admin",
     "roles/compute.networkAdmin",
