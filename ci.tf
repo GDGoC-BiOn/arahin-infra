@@ -64,6 +64,7 @@ resource "google_project_iam_member" "ci_deployer_roles" {
     # create/update/delete the repository resource itself.
     "roles/artifactregistry.repoAdmin",
     "roles/cloudbuild.builds.editor",
+    "roles/cloudtasks.queueAdmin",
     "roles/iam.serviceAccountUser",
     "roles/iam.serviceAccountAdmin",
     # Manages ci.tf's own WIF pool/provider — without this, the CI SA can't
