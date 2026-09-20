@@ -1,0 +1,29 @@
+name: Web deploy check
+
+on:
+  push:
+    branches: ["automation/web-deploy-check"]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  PROJECT_ID: arahin-509007
+  REGION: asia-southeast1
+  WIF_PROVIDER: projects/244244141714/locations/global/workloadIdentityPools/github-actions/providers/github
+  CI_SA: gh-actions-deployer@arahin-509007.iam.gserviceaccount.com
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.CI_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - run: |
+          gcloud run services list --region "$REGION" --project "$PROJECT_ID" \
+            --format='table(metadata.name,status.url,status.latestReadyRevisionName,spec.template.spec.containers[0].image)'
