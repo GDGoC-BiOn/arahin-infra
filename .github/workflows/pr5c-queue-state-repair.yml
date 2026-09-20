@@ -1,0 +1,46 @@
+name: PR5C queue state repair
+
+on:
+  push:
+    branches: ["automation/pr5c-queue-state-repair"]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  PROJECT_ID: arahin-509007
+  WIF_PROVIDER: projects/244244141714/locations/global/workloadIdentityPools/github-actions/providers/github
+  CI_SA: gh-actions-deployer@arahin-509007.iam.gserviceaccount.com
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.CI_SA }}
+      - uses: hashicorp/setup-terraform@v3
+      - name: Import existing Cloud Tasks queues
+        run: |
+          set -euo pipefail
+          terraform init
+
+          if terraform state show google_cloud_tasks_queue.blueprint >/dev/null 2>&1; then
+            echo "blueprint queue already in Terraform state"
+          else
+            terraform import google_cloud_tasks_queue.blueprint               projects/arahin-509007/locations/asia-southeast1/queues/blueprint-generations
+          fi
+
+          if terraform state show google_cloud_tasks_queue.lessons >/dev/null 2>&1; then
+            echo "lesson queue already in Terraform state"
+          else
+            terraform import google_cloud_tasks_queue.lessons               projects/arahin-509007/locations/asia-southeast1/queues/blueprint-lessons
+          fi
+
+          echo "=== queue state ==="
+          terraform state show google_cloud_tasks_queue.blueprint
+          terraform state show google_cloud_tasks_queue.lessons
