@@ -142,12 +142,12 @@ module "backend_service" {
       LESSON_GENERATION_CONCURRENCY = "4"
     },
     var.app_url == "" ? {} : {
-      APP_URL                   = var.app_url
-      CLOUD_TASKS_PROJECT       = var.project_id
-      CLOUD_TASKS_LOCATION      = var.region
-      CLOUD_TASKS_QUEUE         = google_cloud_tasks_queue.blueprint.name
-      CLOUD_TASKS_LESSON_QUEUE  = google_cloud_tasks_queue.lessons.name
-      CLOUD_TASKS_WORKER_URL    = var.app_url
+      APP_URL                  = var.app_url
+      CLOUD_TASKS_PROJECT      = var.project_id
+      CLOUD_TASKS_LOCATION     = var.region
+      CLOUD_TASKS_QUEUE        = google_cloud_tasks_queue.blueprint.name
+      CLOUD_TASKS_LESSON_QUEUE = google_cloud_tasks_queue.lessons.name
+      CLOUD_TASKS_WORKER_URL   = var.app_url
     },
   )
 
