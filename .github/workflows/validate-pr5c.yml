@@ -1,0 +1,18 @@
+name: Validate PR5C infra
+
+on:
+  push:
+    branches: ["work/pr5c-e2e"]
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Format
+        run: terraform fmt -check -recursive
+      - name: Init
+        run: terraform init -backend=false
+      - name: Validate
+        run: terraform validate
