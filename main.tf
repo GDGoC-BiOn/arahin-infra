@@ -101,7 +101,10 @@ module "ai_service" {
   env = {
     GOOGLE_GENAI_USE_VERTEXAI = "true"
     GOOGLE_CLOUD_PROJECT      = var.project_id
-    GOOGLE_CLOUD_LOCATION     = var.region
+    # gemini-3.8-flash is available to this project on Vertex's global
+    # endpoint but not asia-southeast1. Keep Cloud Run in Singapore; only the
+    # model-serving endpoint is global.
+    GOOGLE_CLOUD_LOCATION     = "global"
     GEMINI_MODEL              = "gemini-3.8-flash"
   }
 }
