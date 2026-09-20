@@ -25,5 +25,9 @@ jobs:
           service_account: ${{ env.CI_SA }}
       - uses: google-github-actions/setup-gcloud@v2
       - run: |
+          echo "===== SERVICES ====="
           gcloud run services list --region "$REGION" --project "$PROJECT_ID" \
             --format='table(metadata.name,status.url,status.latestReadyRevisionName,spec.template.spec.containers[0].image)'
+          echo "===== RECENT BUILDS ====="
+          gcloud builds list --project "$PROJECT_ID" --limit=8 \
+            --format='table(id,status,createTime,duration,images)'
