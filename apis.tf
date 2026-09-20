@@ -17,6 +17,7 @@ resource "google_project_service" "apis" {
     # account's calls got a hard 403 until this was enabled.
     "cloudresourcemanager.googleapis.com",
     "cloudtrace.googleapis.com",
+    "cloudtasks.googleapis.com",
   ])
 
   project            = var.project_id
