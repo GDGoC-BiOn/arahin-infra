@@ -44,3 +44,32 @@ resource "google_secret_manager_secret_iam_member" "backend_database_url" {
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${module.sa_backend.email}"
 }
+
+
+resource "random_password" "internal_task" {
+  length  = 48
+  special = false
+}
+
+resource "google_secret_manager_secret" "internal_task_secret" {
+  project   = var.project_id
+  secret_id = "arahin-internal-task-secret"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.apis]
+}
+
+resource "google_secret_manager_secret_version" "internal_task_secret" {
+  secret      = google_secret_manager_secret.internal_task_secret.id
+  secret_data = random_password.internal_task.result
+}
+
+resource "google_secret_manager_secret_iam_member" "backend_internal_task_secret" {
+  project   = var.project_id
+  secret_id = google_secret_manager_secret.internal_task_secret.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${module.sa_backend.email}"
+}
