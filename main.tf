@@ -72,11 +72,14 @@ module "parser_service" {
   name                  = "arahin-parser"
   image                 = local.images.parser
   service_account_email = module.sa_parser.email
+  cpu                   = "2"
+  memory                = "1Gi"
   timeout_seconds       = 150
   invoker_members       = ["serviceAccount:${module.sa_backend.email}"]
 
   env = {
     MAX_FILE_MB       = "25"
+    PARSE_WORKERS     = "2"
     PARSE_TIMEOUT_MS  = "120000"
     OCR_ENABLED       = "true"
     TESSDATA_PATH     = "/app/tessdata"
