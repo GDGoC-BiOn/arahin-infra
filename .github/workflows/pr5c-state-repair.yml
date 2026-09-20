@@ -1,0 +1,36 @@
+name: PR5C Terraform state repair
+
+on:
+  push:
+    branches: ["automation/pr5c-state-repair"]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  PROJECT_ID: arahin-509007
+  WIF_PROVIDER: projects/244244141714/locations/global/workloadIdentityPools/github-actions/providers/github
+  CI_SA: gh-actions-deployer@arahin-509007.iam.gserviceaccount.com
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.CI_SA }}
+      - uses: hashicorp/setup-terraform@v3
+      - name: Import existing internal task secret
+        run: |
+          set -euo pipefail
+          terraform init
+          if terraform state show google_secret_manager_secret.internal_task_secret >/dev/null 2>&1; then
+            echo "internal task secret already in state"
+          else
+            terraform import google_secret_manager_secret.internal_task_secret \
+              projects/arahin-509007/secrets/arahin-internal-task-secret
+          fi
