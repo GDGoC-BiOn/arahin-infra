@@ -8,6 +8,7 @@ locals {
     "GDGoC-BiOn/arahin-parser",
     "GDGoC-BiOn/arahin-ai",
     "GDGoC-BiOn/arahin-infra",
+    "GDGoC-BiOn/arahin-web",
   ]
 }
 
