@@ -41,7 +41,7 @@ module "sa_backend" {
   project_id    = var.project_id
   account_id    = "arahin-backend-run"
   display_name  = "arahin-backend Cloud Run runtime"
-  project_roles = ["roles/cloudsql.client", "roles/cloudtrace.agent"]
+  project_roles = ["roles/cloudsql.client", "roles/cloudtrace.agent", "roles/cloudtasks.enqueuer"]
   depends_on    = [google_project_service.apis]
 }
 
@@ -129,23 +129,32 @@ module "backend_service" {
 
   env = merge(
     {
-      APP_ENV                  = "production"
-      JWT_TTL_HOURS            = "1"
-      PARSER_BASE_URL          = module.parser_service.uri
-      PARSER_TIMEOUT_SECONDS   = "150"
-      AI_BASE_URL              = module.ai_service.uri
-      AI_TIMEOUT_SECONDS       = "300"
-      AI_MAX_ATTEMPTS          = "3"
-      AI_RETRY_BASE_BACKOFF_MS = "500"
-      AI_MAX_MARKDOWN_CHARS    = "200000"
-      CORS_ORIGINS             = "*"
+      APP_ENV                       = "production"
+      JWT_TTL_HOURS                 = "1"
+      PARSER_BASE_URL               = module.parser_service.uri
+      PARSER_TIMEOUT_SECONDS        = "150"
+      AI_BASE_URL                   = module.ai_service.uri
+      AI_TIMEOUT_SECONDS            = "300"
+      AI_MAX_ATTEMPTS               = "3"
+      AI_RETRY_BASE_BACKOFF_MS      = "500"
+      AI_MAX_MARKDOWN_CHARS         = "200000"
+      CORS_ORIGINS                  = "*"
+      LESSON_GENERATION_CONCURRENCY = "4"
     },
-    var.app_url == "" ? {} : { APP_URL = var.app_url },
+    var.app_url == "" ? {} : {
+      APP_URL                   = var.app_url
+      CLOUD_TASKS_PROJECT       = var.project_id
+      CLOUD_TASKS_LOCATION      = var.region
+      CLOUD_TASKS_QUEUE         = google_cloud_tasks_queue.blueprint.name
+      CLOUD_TASKS_LESSON_QUEUE  = google_cloud_tasks_queue.lessons.name
+      CLOUD_TASKS_WORKER_URL    = var.app_url
+    },
   )
 
   secret_env = {
-    JWT_SECRET   = { secret_id = google_secret_manager_secret.jwt_secret.secret_id }
-    DATABASE_URL = { secret_id = google_secret_manager_secret.database_url.secret_id }
+    JWT_SECRET           = { secret_id = google_secret_manager_secret.jwt_secret.secret_id }
+    DATABASE_URL         = { secret_id = google_secret_manager_secret.database_url.secret_id }
+    INTERNAL_TASK_SECRET = { secret_id = google_secret_manager_secret.internal_task_secret.secret_id }
   }
 
   # secret_env above only names the secret container, not its version — so
@@ -154,7 +163,11 @@ module "backend_service" {
   depends_on = [
     google_secret_manager_secret_version.jwt_secret,
     google_secret_manager_secret_version.database_url,
+    google_secret_manager_secret_version.internal_task_secret,
     google_secret_manager_secret_iam_member.backend_jwt,
     google_secret_manager_secret_iam_member.backend_database_url,
+    google_secret_manager_secret_iam_member.backend_internal_task_secret,
+    google_cloud_tasks_queue.blueprint,
+    google_cloud_tasks_queue.lessons,
   ]
 }
