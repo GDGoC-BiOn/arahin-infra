@@ -102,7 +102,7 @@ module "ai_service" {
     GOOGLE_GENAI_USE_VERTEXAI = "true"
     GOOGLE_CLOUD_PROJECT      = var.project_id
     GOOGLE_CLOUD_LOCATION     = var.region
-    GEMINI_MODEL              = "gemini-2.5-flash"
+    GEMINI_MODEL              = "gemini-3.8-flash"
   }
 }
 
